@@ -21,7 +21,7 @@ public class ValueMetadata<T extends Comparable> {
 
 	private T value;
 	private int count;
-	private double percentageValue;
+	private double probability;
 
 
 	public ValueMetadata(T value) {
@@ -52,18 +52,18 @@ public class ValueMetadata<T extends Comparable> {
 	}
 
 	/**
-	 * @return the percentageValue
+	 * @return the probability
 	 */
-	public double getPercentageValue() {
-		return percentageValue;
+	public double getProbability() {
+		return probability;
 	}
 
 	/**
-	 * @param percentageValue
-	 *            the percentageValue to set
+	 * @param probability
+	 *            the probability to set
 	 */
-	public void setPercentageValue(double percentageValue) {
-		this.percentageValue = percentageValue;
+	public void setProbability(double probability) {
+		this.probability = probability;
 	}
 
 
@@ -72,7 +72,7 @@ public class ValueMetadata<T extends Comparable> {
 	 */
 	@Override
 	public String toString() {
-		return "ValueMetadata [value=" + value + ", count=" + count + ", percentageValue=" + percentageValue + "]";
+		return "ValueMetadata [value=" + value + ", count=" + count + ", probability=" + probability + "]";
 	}
 
 }

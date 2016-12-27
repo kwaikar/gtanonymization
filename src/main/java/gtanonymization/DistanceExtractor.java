@@ -17,7 +17,7 @@ public class DistanceExtractor {
 			if (value1.length()!=0 && value2.length()!=0)
 			{
 			switch (
-				column.getType()
+				column.getType()	
 			) {
 
 			/**

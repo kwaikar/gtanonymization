@@ -4,9 +4,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import gtanonymization.Constants;
 
+/**
+ * Holds metadata about the column.
+ * 
+ * @author kanchan
+ * @param <T>
+ */
 public class ColumnMetadata<T extends Comparable> {
 
 	/**
@@ -37,7 +44,14 @@ public class ColumnMetadata<T extends Comparable> {
 	@Override
 	public String toString() {
 		return "ColumnMetadata [columnName=" + columnName + ", type=" + type + ", min=" + min + ", max=" + max
-				+ ", mode=" + mode + "]";
+				+ ", mode=" + mode + ", uniqueValues= " + map.keySet().size() + "]";
+	}
+
+	/**
+	 * @return the columnName
+	 */
+	public String getColumnName() {
+		return columnName;
 	}
 
 	String columnName;
@@ -70,7 +84,32 @@ public class ColumnMetadata<T extends Comparable> {
 
 	Map<T, ValueMetadata<T>> map = new HashMap<T, ValueMetadata<T>>();
 
-	public void addEntryToMap(T entry) {
+	Map<T, Integer> indexMap = new HashMap<T, Integer>();
+
+	public int getNumUniqueValues() {
+		return map.keySet().size();
+	}
+
+	public int getIndex(String entryString) {
+		if (indexMap == null || indexMap.isEmpty()) {
+			Set<T> keySet = map.keySet();
+			int index = 0;
+			for (T t : keySet) {
+				indexMap.put(t, index++);
+			}
+		}
+		return indexMap.get(extractEntry(entryString));
+
+	}
+
+	public double getEntryFromMap(String entry) {
+		return map.get(extractEntry(entry)).getProbability();
+	}
+
+	public T addEntryToMap(String entryString) {
+
+		T entry = extractEntry(entryString);
+
 		ValueMetadata<T> metadata = map.get(entry);
 		if (metadata == null) {
 			metadata = new ValueMetadata<T>(entry);
@@ -79,6 +118,40 @@ public class ColumnMetadata<T extends Comparable> {
 			metadata.incrementCount();
 		}
 		map.put(entry, metadata);
+		return entry;
+	}
+
+	private T extractEntry(String entryString) {
+		Object entry = null;
+		entryString = entryString.trim().replaceAll("\\$", "");
+		switch (
+			this.type
+		) {
+		/**
+		 * Add integer value
+		 */
+		case 'i':
+		case 'P':
+			entry = (Integer.parseInt(entryString));
+			break;
+
+		/**
+		 * Add double value
+		 */
+		case 'd':
+		case '$':
+			entry = (Double.parseDouble(entryString));
+			break;
+		/**
+		 * add integer currency
+		 */
+
+
+		case 's':
+			entry = (entryString.trim());
+			break;
+		}
+		return (T) entry;
 	}
 
 	public void setMinMaxAndMode() {
@@ -100,7 +173,7 @@ public class ColumnMetadata<T extends Comparable> {
 			totalCount += value.getCount();
 		}
 		for (ValueMetadata<T> value : map.values()) {
-			value.setPercentageValue((double) value.getCount() / totalCount);
+			value.setProbability((double) value.getCount() / totalCount);
 		}
 		this.mode = tempMode.getValue();
 	}

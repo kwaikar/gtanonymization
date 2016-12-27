@@ -10,9 +10,11 @@ import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 
 import gtanonymization.domain.ColumnMetadata;
 import gtanonymization.domain.DataMetadata;
+import scala.collection.parallel.ParIterableLike.Foreach;
 
 /**
  * This class extracts metadata for each column from the input. It takes input
@@ -23,6 +25,8 @@ import gtanonymization.domain.DataMetadata;
  * @author kanchan
  */
 public class MetadataExtractor {
+
+	final static Logger logger = Logger.getLogger(MetadataExtractor.class);
 
 	/**
 	 * This method extracts basic statistics about the data.
@@ -55,9 +59,13 @@ public class MetadataExtractor {
 		}
 
 		DataMetadata dataMetadata = basicMetadata(headerLine, numColumns, dataStartCount, lines);
-		System.out.println(dataMetadata);
-		extractClusters(dataStartCount, lines, dataMetadata);
-		System.out.println("done!");
+		logger.info(dataMetadata); 
+		Kmeans kmeans = new Kmeans();
+		kmeans.trainModelAndPredict(dataMetadata);
+		// extractClusters(dataStartCount, lines, dataMetadata);
+		// LatticeCreator lc = new LatticeCreator();
+		// lc.formTree(lines[dataStartCount].split(","), dataMetadata);
+		logger.info("done!");
 		return dataMetadata;
 	}
 
@@ -84,7 +92,7 @@ public class MetadataExtractor {
 				Set<Integer> cluster = new HashSet<Integer>();
 				int minDistance = Integer.MAX_VALUE;
 				int minFound = -1;
-				// System.out.println(lines[i]);
+				logger.info(lines[i]);
 				for (int j = dataStartCount; j < lines.length; j++) {
 					if (i != j && !isDisabled[j]) {
 						int distanceFound = DistanceExtractor.getDistance(dataMetadata, lines[i], lines[j]);
@@ -93,7 +101,7 @@ public class MetadataExtractor {
 							isDisabled[j] = true;
 							cluster.add(j);
 							minFound = j;
-							// System.out.println(lines[j]);
+							logger.info(lines[j]);
 						}
 						else if (minDistance > distanceFound) {
 							minDistance = distanceFound;
@@ -110,17 +118,18 @@ public class MetadataExtractor {
 					isDisabled[minFound] = true;
 					cluster.add(minFound);
 					clusters.add(cluster);
-					System.out.println("Cluster found : " + cluster.size());
+					logger.info("Cluster found : " + cluster.size());
 				}
-				// System.out.println(lines[minFound]);
-				// System.out.println(i + ":(" + minFound + "=>" + minDistance);
+				// logger.info(lines[minFound]);
+				// logger.info(i + ":(" + minFound + "=>" + minDistance);
 			}
 		}
-		System.out.println("Clusters found:" + clusters.size());
+		logger.info("Clusters found:" + clusters.size());
+		logger.info("Number of Outliers found " + outliers);
 		/**
 		 * Pass 2
 		 */
-		System.out.println("-------------------------Executing Pass 2----------------------------");
+		logger.info("-------------------------Executing Pass 2----------------------------");
 		for (Integer i : outliers) {
 
 			Set<Integer> cluster = new HashSet<Integer>();
@@ -134,29 +143,29 @@ public class MetadataExtractor {
 						minDistance = distanceFound;
 						cluster.add(j);
 						minFound = j;
-						// System.out.println(lines[j]);
+						// logger.info(lines[j]);
 					}
 					else if (minDistance > distanceFound) {
 						minDistance = distanceFound;
 						minFound = j;
 					}
 
-					
 				}
 			}
 			if (minDistance > Constants.CLUSTER_THRESHOLD) {
-				System.out.println(
-						"No Cluster found for  following entry as distance between nearest point and itself is "
-								+ minDistance);
-				System.out.println(lines[i]);
-				System.out.println(lines[minFound]);
+				logger.info("No Cluster found for  following entry as distance between nearest point and itself is "
+						+ minDistance);
+				logger.info(lines[i]);
+				logger.info(lines[minFound]);
 			}
 			else {
 				cluster.add(minFound);
-				System.out.println(lines[i]);
+				logger.info("cluster found of size:" + +cluster.size() + " => " + minDistance);
+				logger.info(lines[i]);
+				logger.info(lines[minFound]);
 
 				clusters.add(cluster);
-				System.out.println("Cluster found : " + cluster.size());
+				logger.info("Cluster found : ");
 			}
 		}
 	}
@@ -180,10 +189,12 @@ public class MetadataExtractor {
 		/**
 		 * Extract column types
 		 */
+		int numRangeColumn = 0;
 		for (int i = dataStartCount; i < lines.length; i++) {
 
-			// System.out.println("Working on line " + i);
+			// logger.info("Working on line " + i);
 			String[] columnDataValue = lines[i].split(Constants.COMMA);
+			Object[] row = new Object[headerLabels.length];
 			for (int index = 0; index < columnDataValue.length; index++) {
 
 				String value = columnDataValue[index].trim();
@@ -196,55 +207,28 @@ public class MetadataExtractor {
 							isCurrancy = true;
 						}
 						if (value.matches(Constants.INT_REGEX)) {
+							numRangeColumn++;
 							metadata = new ColumnMetadata<Integer>(headerLabels[index], isCurrancy ? 'P' : 'i');
 						}
 						else if (value.matches(Constants.DOUBLE_REGEX)) {
+							numRangeColumn++;
 							metadata = new ColumnMetadata<Double>(headerLabels[index], isCurrancy ? '$' : 'd');
 						}
 						else {
-							System.out.println(value + ":" + headerLabels[index]);
+							// logger.info(value + ":" + headerLabels[index]);
 							metadata = new ColumnMetadata<String>(headerLabels[index], 's');
 						}
 						dataMetadata.setColumn(index, metadata);
 					}
-					value = value.trim().replaceAll("\\$", "");
-					switch (
-						metadata.getType()
-						) {
-					/**
-					 * Add integer value
-					 */
-					case 'i':
-						metadata.addEntryToMap(Integer.parseInt(value));
-						break;
-
-					/**
-					 * Add double value
-					 */
-					case 'd':
-						metadata.addEntryToMap(Double.parseDouble(value));
-						break;
-					/**
-					 * add integer currency
-					 */
-
-					case 'P':
-						metadata.addEntryToMap(Integer.parseInt(value));
-						break;
-
-					case '$':
-						metadata.addEntryToMap(Double.parseDouble(value));
-						break;
-
-					case 's':
-						metadata.addEntryToMap(value.trim());
-						break;
-					}
-
+					Object entry = metadata.addEntryToMap(value);
+					row[index] = entry;
 					dataMetadata.setColumn(index, metadata);
 				}
 			}
+
+			dataMetadata.addRow(row);
 		}
+		dataMetadata.setNumRangeColumns(numRangeColumn);
 		for (ColumnMetadata<?> column : dataMetadata.columns) {
 			column.setMinMaxAndMode();
 		}
@@ -270,10 +254,10 @@ public class MetadataExtractor {
 		try {
 			String fileData;
 			fileData = FileUtils.readFileToString(new File(args[0]), "UTF-8");
-			extractor.extractStatistics(fileData, headerLine);
+			DataMetadata metadata = extractor.extractStatistics(fileData, headerLine);
 		}
 		catch (IOException e) {
-			System.out.println("Input file is not present on given path");
+			logger.info("Input file is not present on given path");
 		}
 		catch (Exception e) {
 			e.printStackTrace();
