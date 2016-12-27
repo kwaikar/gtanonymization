@@ -17,25 +17,20 @@ import gtanonymization.domain.ColumnMetadata;
 import gtanonymization.domain.DataMetadata;
 
 public class Kmeans {
-	public void trainModelAndPredict (DataMetadata dataMetadata){
+	public void trainModelAndPredict (DataMetadata dataMetadata, int k){
 
 		
 		SparkConf conf = new SparkConf().setAppName("JavaKMeansExample");
+		conf.setMaster("local");
 		JavaSparkContext jsc = new JavaSparkContext(conf);
 		SQLContext sqlContext = new SQLContext(jsc);
-
-		JavaRDD<double[]> data =  jsc.parallelize(extractRows(dataMetadata));
+		List<Vector> dataArray=extractRows(dataMetadata);
+		JavaRDD<Vector> parsedData =  jsc.parallelize(dataArray);
 		
-		JavaRDD<Vector> parsedData = data.map(new Function<double[], Vector>() {
-			private static final long serialVersionUID = 1L;
-			public Vector call(double[] values) {
-				return Vectors.dense(values);
-			}
-		});
 		parsedData.cache();
 
 		// Cluster the data into two classes using KMeans
-		int numClusters = 2;
+		int numClusters = dataArray.size()/k;
 		int numIterations = 20;
 		KMeansModel clusters = KMeans.train(parsedData.rdd(), numClusters, numIterations);
 
@@ -57,8 +52,8 @@ public class Kmeans {
 	
 	
 
-	public List<double[]> extractRows( DataMetadata dataMetadata) {
-		List<double[]> list = new LinkedList<double[]>();
+	public List<Vector> extractRows( DataMetadata dataMetadata) {
+		List<Vector> list = new LinkedList<Vector>();
 		int startCount = 0;
 		int[] columnStartCounts=new int[dataMetadata.columns.length];
 		int index=0;
@@ -89,7 +84,7 @@ public class Kmeans {
 					 */
 					case 'i':
 					case 'P':
-						row[index] =  ((Integer)ds[index]);
+						row[columnStartCounts[index]] = ((Integer)ds[index]);
 						break;
 
 					/**
@@ -97,7 +92,7 @@ public class Kmeans {
 					 */
 					case 'd':
 					case '$':
-						row[index] =  ((Double)ds[index]);
+						row[columnStartCounts[index]] =  ((Double)ds[index]);
 						break;
 					/**
 					 * add integer currency
@@ -109,7 +104,18 @@ public class Kmeans {
 					}
 				index++;
 			}
-			list.add(row);
+			
+			for (Object d : ds)  
+				{
+					System.out.print(d+" ");
+				}
+			System.out.println();
+				
+			for (double e : row) {
+				System.out.print(e +" ");	
+			}
+			System.out.println();
+			list.add(Vectors.dense(row));
 		}
 		return list;
 	}

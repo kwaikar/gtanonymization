@@ -45,7 +45,7 @@ public class MetadataExtractor {
 		/**
 		 * Extract number of columns
 		 */
-		if (lines.length > 2) {
+		if (lines.length >= 1) {
 			numColumns = (lines[0].split(Constants.COMMA).length == lines[1].split(Constants.COMMA).length)
 					? lines[0].split(Constants.COMMA).length : 0;
 		}
@@ -61,7 +61,8 @@ public class MetadataExtractor {
 		DataMetadata dataMetadata = basicMetadata(headerLine, numColumns, dataStartCount, lines);
 		logger.info(dataMetadata); 
 		Kmeans kmeans = new Kmeans();
-		kmeans.trainModelAndPredict(dataMetadata);
+		int numClusters=4;
+		kmeans.trainModelAndPredict(dataMetadata,numClusters);
 		// extractClusters(dataStartCount, lines, dataMetadata);
 		// LatticeCreator lc = new LatticeCreator();
 		// lc.formTree(lines[dataStartCount].split(","), dataMetadata);
@@ -254,6 +255,7 @@ public class MetadataExtractor {
 		try {
 			String fileData;
 			fileData = FileUtils.readFileToString(new File(args[0]), "UTF-8");
+			System.out.println(headerLine);
 			DataMetadata metadata = extractor.extractStatistics(fileData, headerLine);
 		}
 		catch (IOException e) {
