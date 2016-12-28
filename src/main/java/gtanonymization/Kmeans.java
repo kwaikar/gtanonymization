@@ -105,16 +105,15 @@ public class Kmeans {
 				index++;
 			}
 			
-			for (Object d : ds)  
+			/*for (Object d : ds)  
 				{
 					System.out.print(d+" ");
 				}
 			System.out.println();
-				
 			for (double e : row) {
 				System.out.print(e +" ");	
 			}
-			System.out.println();
+			System.out.println();*/
 			list.add(Vectors.dense(row));
 		}
 		return list;
