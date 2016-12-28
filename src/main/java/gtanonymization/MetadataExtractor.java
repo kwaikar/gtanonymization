@@ -61,7 +61,7 @@ public class MetadataExtractor {
 		DataMetadata dataMetadata = basicMetadata(headerLine, numColumns, dataStartCount, lines);
 		logger.info(dataMetadata); 
 		Kmeans kmeans = new Kmeans();
-		int numClusters=4;
+		int numClusters=/*lines.length/*/4;
 		kmeans.trainModelAndPredict(dataMetadata,numClusters);
 		// extractClusters(dataStartCount, lines, dataMetadata);
 		// LatticeCreator lc = new LatticeCreator();

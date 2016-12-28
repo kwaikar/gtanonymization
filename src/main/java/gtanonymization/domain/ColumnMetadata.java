@@ -86,6 +86,7 @@ public class ColumnMetadata<T extends Comparable> {
 
 	Map<T, Integer> indexMap = new HashMap<T, Integer>();
 
+	Map<Integer,T> reverseIndexMap = new HashMap<Integer,T>();
 	public int getNumUniqueValues() {
 		return map.keySet().size();
 	}
@@ -95,6 +96,7 @@ public class ColumnMetadata<T extends Comparable> {
 			Set<T> keySet = map.keySet();
 			int index = 0;
 			for (T t : keySet) {
+				reverseIndexMap.put(index, t);
 				indexMap.put(t, index++);
 			}
 		}
@@ -102,6 +104,11 @@ public class ColumnMetadata<T extends Comparable> {
 
 	}
 
+	public T getEntryAtPosition(int position) {
+		 
+		return reverseIndexMap.get(position);
+
+	}
 	public double getEntryFromMap(String entry) {
 		return map.get(extractEntry(entry)).getProbability();
 	}
