@@ -33,9 +33,48 @@ public class Kmeans {
 		for (Vector center : clusters.clusterCenters()) {
 	//		System.out.println(" " + center);
 		}
+		System.out.println("Cluster center found for : ");
+		System.out.println(dataArray.get(0));
+System.out.println();
+		int[] columnStartCounts = getColumnStartCounts(dataMetadata);
+			Object[] returnObject = extractReturnObject(dataMetadata, columnStartCounts, dataArray.get(0).toArray());
+			for (Object object : returnObject) {
+				System.out.print(object+" ");
+			}
+			System.out.println();
+			
+ 		System.out.println("as");
+		System.out.println(clusters.clusterCenters()[clusters.predict(dataArray.get(0))]);
+		System.out.println("-");
+		for (Object object : extractReturnObject(dataMetadata, columnStartCounts, clusters.clusterCenters()[clusters.predict(dataArray.get(0))].toArray())) {
+			System.out.print(object+" ");
+		}
+		System.out.println();
 		System.out.println(
 				"------------------------------------------------------------------------------------------------------------------------------------------------------");
-		convertVectorToValue(dataMetadata, clusters.clusterCenters());
+		
+		int[] numEntries = new int[clusters.clusterCenters().length];
+		int index=0;
+		for (Vector vc : dataArray) {
+		numEntries[clusters.predict(vc)]++;	
+		}
+		int min=Integer.MAX_VALUE;
+		 index=0;
+		int minIndex=0;
+		for (int i : numEntries) {
+			
+			if(i<min)
+			{
+				min=i;
+				minIndex=index;
+			}index++;
+		}
+		System.out.println("Smallest cluster found : "+minIndex+"-->"+min);
+		for (Object object : extractReturnObject(dataMetadata, columnStartCounts, clusters.clusterCenters()[minIndex].toArray())) {
+			System.out.print(object+" ");
+		}
+		
+		//convertVectorToValue(dataMetadata, clusters.clusterCenters());
 		System.out.println("Number of clusters found " + numClusters + "_" + clusters.clusterCenters().length);
 		double cost = clusters.computeCost(parsedData.rdd());
 		System.out.println("Cost: " + cost);
@@ -54,44 +93,7 @@ public class Kmeans {
 		for(Vector next:values) {
 			
 			double[] inputArrayVector = next.toArray();
-			int index = 0;
-			Object[] returnObject= new Object[dataMetadata.columns.length];
-			for (ColumnMetadata<Comparable> column : dataMetadata.columns) {
-				switch (
-					column.getType()
-				) {
-
-				case 'i':
-				case 'P':
-					returnObject[index] = (int) inputArrayVector[columnStartCounts[index]];
-					break;
-
-				case 'd':
-				case '$':
-					returnObject[index] =  inputArrayVector[columnStartCounts[index]];
-					break;
-				/**
-				 * add integer currency
-				 */
-
-					
-				case 's':
-					int position=columnStartCounts[index];
-					double max=inputArrayVector[position];
-					int maxPosition=position;
-					for(int pos = position;pos<position+column.getNumUniqueValues();pos++)
-					{
-						if(max<inputArrayVector[pos])
-						{
-							max=inputArrayVector[pos];
-							maxPosition=pos;
-						}
-					}
-					returnObject[index] = column.getEntryAtPosition((maxPosition-columnStartCounts[index]));
-					break;
-				}
-				index++;
-		}
+			Object[] returnObject = extractReturnObject(dataMetadata, columnStartCounts, inputArrayVector);
 			for (double value : inputArrayVector) {
 				System.out.print(value+" ");
 			}
@@ -106,6 +108,49 @@ public class Kmeans {
 		}
 		
 		return list;
+	}
+
+	private Object[] extractReturnObject(DataMetadata dataMetadata, int[] columnStartCounts,
+			double[] inputArrayVector) {
+		int index = 0;
+		Object[] returnObject= new Object[dataMetadata.columns.length];
+		for (ColumnMetadata<Comparable> column : dataMetadata.columns) {
+			switch (
+				column.getType()
+			) {
+
+			case 'i':
+			case 'P':
+				returnObject[index] = (int) inputArrayVector[columnStartCounts[index]];
+				break;
+
+			case 'd':
+			case '$':
+				returnObject[index] =  inputArrayVector[columnStartCounts[index]];
+				break;
+			/**
+			 * add integer currency
+			 */
+
+				
+			case 's':
+				int position=columnStartCounts[index];
+				double max=inputArrayVector[position];
+				int maxPosition=position;
+				for(int pos = position;pos<position+column.getNumUniqueValues();pos++)
+				{
+					if(max<inputArrayVector[pos])
+					{
+						max=inputArrayVector[pos];
+						maxPosition=pos;
+					}
+				}
+				returnObject[index] = column.getEntryAtPosition((maxPosition-columnStartCounts[index]));
+				break;
+			}
+			index++;
+}
+		return returnObject;
 	}
 
 

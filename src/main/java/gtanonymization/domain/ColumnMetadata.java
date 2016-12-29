@@ -84,6 +84,13 @@ public class ColumnMetadata<T extends Comparable> {
 
 	Map<T, ValueMetadata<T>> map = new HashMap<T, ValueMetadata<T>>();
 
+	/**
+	 * @return the map
+	 */
+	public Collection<ValueMetadata<T>> getValues() {
+		return map.values();
+	}
+
 	Map<T, Integer> indexMap = new HashMap<T, Integer>();
 
 	Map<Integer,T> reverseIndexMap = new HashMap<Integer,T>();

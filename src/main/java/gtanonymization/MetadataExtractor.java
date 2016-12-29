@@ -2,19 +2,23 @@ package gtanonymization;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
 import gtanonymization.domain.ColumnMetadata;
 import gtanonymization.domain.DataMetadata;
-import scala.collection.parallel.ParIterableLike.Foreach;
+import gtanonymization.domain.ValueMetadata;
 
 /**
  * This class extracts metadata for each column from the input. It takes input
@@ -59,16 +63,20 @@ public class MetadataExtractor {
 		}
 
 		DataMetadata dataMetadata = basicMetadata(headerLine, numColumns, dataStartCount, lines);
-		logger.info(dataMetadata); 
+		logger.info(dataMetadata);
 		Kmeans kmeans = new Kmeans();
-		int numClusters=/*lines.length/*/4;
-		kmeans.trainModelAndPredict(dataMetadata,numClusters);
+		int numClusters = lines.length / 8;
+MetadataExporter exporter = new MetadataExporter();
+		exporter.exportMetadata(dataMetadata,"/home/kanchan/metadata.xml");
+		// kmeans.trainModelAndPredict(dataMetadata, numClusters);
 		// extractClusters(dataStartCount, lines, dataMetadata);
 		// LatticeCreator lc = new LatticeCreator();
 		// lc.formTree(lines[dataStartCount].split(","), dataMetadata);
 		logger.info("done!");
 		return dataMetadata;
 	}
+
+	
 
 	/**
 	 * This is a 2 pass algorithm in which in first pass, we find out all
