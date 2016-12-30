@@ -64,119 +64,18 @@ public class MetadataExtractor {
 
 		DataMetadata dataMetadata = basicMetadata(headerLine, numColumns, dataStartCount, lines);
 		logger.info(dataMetadata);
-		Kmeans kmeans = new Kmeans();
-		int numClusters = lines.length / 8;
-MetadataExporter exporter = new MetadataExporter();
-		exporter.exportMetadata(dataMetadata,"/home/kanchan/metadata.xml");
+		MetadataExporter exporter = new MetadataExporter();
+		exporter.exportMetadata(dataMetadata, "/home/kanchan/metadata.xml");
+
+		//Kmeans kmeans = new Kmeans();
+		//int numClusters = lines.length / 8;
 		// kmeans.trainModelAndPredict(dataMetadata, numClusters);
-		// extractClusters(dataStartCount, lines, dataMetadata);
+		// NaiveClusterExtractor nce = new NaiveClusterExtractor();
+		// nce.extractClusters(dataStartCount, lines, dataMetadata);
 		// LatticeCreator lc = new LatticeCreator();
 		// lc.formTree(lines[dataStartCount].split(","), dataMetadata);
 		logger.info("done!");
 		return dataMetadata;
-	}
-
-	
-
-	/**
-	 * This is a 2 pass algorithm in which in first pass, we find out all
-	 * entries that are within the cluster, in second round, we find the point
-	 * for first one to hang to.
-	 * 
-	 * @param dataStartCount
-	 * @param lines
-	 * @param dataMetadata
-	 */
-	private void extractClusters(int dataStartCount, String[] lines, DataMetadata dataMetadata) {
-		List<Set<Integer>> clusters = new LinkedList<Set<Integer>>();
-		boolean[] isDisabled = new boolean[lines.length - dataStartCount];
-		List<Integer> outliers = new ArrayList<Integer>();
-		/**
-		 * First Pass- assign obvious cluster
-		 */
-
-		for (int i = dataStartCount; i < lines.length; i++) {
-			if (!isDisabled[i]) {
-
-				Set<Integer> cluster = new HashSet<Integer>();
-				int minDistance = Integer.MAX_VALUE;
-				int minFound = -1;
-				logger.info(lines[i]);
-				for (int j = dataStartCount; j < lines.length; j++) {
-					if (i != j && !isDisabled[j]) {
-						int distanceFound = DistanceExtractor.getDistance(dataMetadata, lines[i], lines[j]);
-						if (distanceFound < Constants.CLUSTER_WIDTH) {
-							minDistance = distanceFound;
-							isDisabled[j] = true;
-							cluster.add(j);
-							minFound = j;
-							logger.info(lines[j]);
-						}
-						else if (minDistance > distanceFound) {
-							minDistance = distanceFound;
-							minFound = j;
-						}
-					}
-				}
-				isDisabled[i] = true;
-				cluster.add(i);
-				if (minDistance > Constants.CLUSTER_THRESHOLD) {
-					outliers.add(i);
-				}
-				else {
-					isDisabled[minFound] = true;
-					cluster.add(minFound);
-					clusters.add(cluster);
-					logger.info("Cluster found : " + cluster.size());
-				}
-				// logger.info(lines[minFound]);
-				// logger.info(i + ":(" + minFound + "=>" + minDistance);
-			}
-		}
-		logger.info("Clusters found:" + clusters.size());
-		logger.info("Number of Outliers found " + outliers);
-		/**
-		 * Pass 2
-		 */
-		logger.info("-------------------------Executing Pass 2----------------------------");
-		for (Integer i : outliers) {
-
-			Set<Integer> cluster = new HashSet<Integer>();
-			int minDistance = Integer.MAX_VALUE;
-			int minFound = -1;
-			for (int j = dataStartCount; j < lines.length; j++) {
-				if (i != j) {
-
-					int distanceFound = DistanceExtractor.getDistance(dataMetadata, lines[i], lines[j]);
-					if (distanceFound < Constants.CLUSTER_WIDTH) {
-						minDistance = distanceFound;
-						cluster.add(j);
-						minFound = j;
-						// logger.info(lines[j]);
-					}
-					else if (minDistance > distanceFound) {
-						minDistance = distanceFound;
-						minFound = j;
-					}
-
-				}
-			}
-			if (minDistance > Constants.CLUSTER_THRESHOLD) {
-				logger.info("No Cluster found for  following entry as distance between nearest point and itself is "
-						+ minDistance);
-				logger.info(lines[i]);
-				logger.info(lines[minFound]);
-			}
-			else {
-				cluster.add(minFound);
-				logger.info("cluster found of size:" + +cluster.size() + " => " + minDistance);
-				logger.info(lines[i]);
-				logger.info(lines[minFound]);
-
-				clusters.add(cluster);
-				logger.info("Cluster found : ");
-			}
-		}
 	}
 
 	/**
