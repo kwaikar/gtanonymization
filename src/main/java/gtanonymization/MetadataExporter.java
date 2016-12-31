@@ -28,77 +28,100 @@ public class MetadataExporter {
 	 * 
 	 * @param dataMetadata
 	 */
-	public void exportMetadata(DataMetadata dataMetadata, String filePath) {
+	public void exportMetadata(DataMetadata dataMetadata, String filePath, Boolean printRanges) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("<columns>");
 		for (ColumnMetadata column : dataMetadata.columns) {
 			sb.append("<column>");
 			sb.append("<name>" + column.getColumnName() + "</name>");
 			sb.append("<type>" + column.getType() + "</type>");
+			sb.append("<num_unique>" + column.getNumUniqueValues() + "</num_unique>");
 			sb.append("<ranges>");
-			switch (
-				column.getType()
-			) {
-
-			case 'i':
-			case 'P':
-				int singleRange = (int) getIncrementBasedOnRangesCalculated(column);
-
-				for (Integer i = (Integer) column.getMin(); i < (Integer) column.getMax();) {
-					Pair<Integer, Integer> p = new ImmutablePair<Integer,Integer>(i,
-							(Integer) ((i + singleRange) > (Integer) column.getMax() ? column.getMax()
-									: (i + singleRange)));
-					int count = 0;
-					Iterator<ValueMetadata<Integer>> itr = column.getValues().iterator();
-					while (itr.hasNext()) {
-						ValueMetadata<Integer> value = itr.next();
-						if (value.getValue() >= p.getLeft() && value.getValue() <= p.getRight()) {
-							count += value.getCount();
-						}
-					}
-					sb.append(printRange(dataMetadata, p, count));
-					i = i + singleRange + 1;
-				}
-				break;
-			case 'd':
-			case '$':
-				double increment = getIncrementBasedOnRangesCalculated(column);
-
-				for (double i = (Double) column.getMin(); i < (Double) column.getMax();) {
-					Pair<Double, Double> p = new ImmutablePair<Double,Double>(i,
-							(Double) ((i + increment) > (Double) column.getMax() ? column.getMax() : (i + increment)));
-					int count = 0;
-					Iterator<ValueMetadata<Double>> itr = column.getValues().iterator();
-					while (itr.hasNext()) {
-						ValueMetadata<Double> value = itr.next();
-						if (value.getValue() >= p.getLeft() && value.getValue() <= p.getRight()) {
-							count += value.getCount();
-						}
-					}
-					sb.append(printRange(dataMetadata, p, count));
-					i = i + increment + 1;
-				}
-				break;
-			/**
-			 * add integer currency
-			 */
-
-			case 's':
+			if (!printRanges) {
 				Iterator<ValueMetadata> itr = column.getValues().iterator();
 				while (itr.hasNext()) {
-					ValueMetadata<String> value = itr.next();
+					ValueMetadata value = itr.next();
 
 					sb.append("<range>");
 					sb.append("<value>" + value.getValue() + "</value>");
+					sb.append("<frequency>" + value.getCount() + "</frequency>");
 					sb.append("<probability>" + decimalFormat.format(value.getProbability()) + "</probability>");
 					sb.append("</range>");
+				}
+			}
+			else {
+				switch (
+					column.getType()
+				) {
+
+				case 'i':
+				case 'P':
+					int singleRange = (int) getIncrementBasedOnRangesCalculated(column);
+
+					for (Integer i = (Integer) column.getMin(); i < (Integer) column.getMax();) {
+						Pair<Integer, Integer> p = new ImmutablePair<Integer, Integer>(i,
+								(Integer) ((i + singleRange) > (Integer) column.getMax() ? column.getMax()
+										: (i + singleRange)));
+						int count = 0;
+						Iterator<ValueMetadata<Integer>> itr = column.getValues().iterator();
+						while (itr.hasNext()) {
+							ValueMetadata<Integer> value = itr.next();
+							if (value.getValue() >= p.getLeft() && value.getValue() <= p.getRight()) {
+								count += value.getCount();
+							}
+						}
+						sb.append(printRange(dataMetadata, p, count));
+						i = i + singleRange + 1;
+					}
+					break;
+				case 'd':
+				case '$':
+					double increment = getIncrementBasedOnRangesCalculated(column);
+
+					for (double i = (Double) column.getMin(); i < (Double) column.getMax();) {
+						Pair<Double, Double> p = new ImmutablePair<Double, Double>(i,
+								(Double) ((i + increment) > (Double) column.getMax() ? column.getMax()
+										: (i + increment)));
+						int count = 0;
+						Iterator<ValueMetadata<Double>> itr = column.getValues().iterator();
+						while (itr.hasNext()) {
+							ValueMetadata<Double> value = itr.next();
+							if (value.getValue() >= p.getLeft() && value.getValue() <= p.getRight()) {
+								count += value.getCount();
+							}
+						}
+						sb.append(printRange(dataMetadata, p, count));
+						i = i + increment + 1;
+					}
+					break;
+				/**
+				 * add integer currency
+				 */
+
+				case 's':
+					if (printRanges) {
+						Iterator<ValueMetadata> itr = column.getValues().iterator();
+						while (itr.hasNext()) {
+							ValueMetadata<String> value = itr.next();
+
+							sb.append("<range>");
+							sb.append("<value>" + value.getValue() + "</value>");
+							sb.append("<frequency>" + value.getCount() + "</frequency>");
+							sb.append("<probability>" + decimalFormat.format(value.getProbability()) + "</probability>");
+							sb.append("</range>");
+						}
+					}
+					break;
+
 				}
 			}
 			sb.append("</ranges>");
 			sb.append("</column>");
 		}
 		sb.append("</columns>");
-		try {
+		try
+
+		{
 			FileUtils.writeStringToFile(new File(filePath), sb.toString());
 		}
 		catch (IOException e) {
@@ -119,6 +142,7 @@ public class MetadataExporter {
 		sb.append("<range>");
 		sb.append("<start>" + p.getLeft() + "</start>");
 		sb.append("<end>" + p.getRight() + "</end>");
+		sb.append("<frequency>" + count + "</frequency>");
 		sb.append(
 				"<probability>" + decimalFormat.format(((double) count / dataMetadata.rows.size())) + "</probability>");
 		sb.append("</range>");

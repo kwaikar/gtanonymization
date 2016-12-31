@@ -2,23 +2,23 @@ package gtanonymization;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import gtanonymization.domain.ColumnMetadata;
+import gtanonymization.domain.ColumnStatistics;
 import gtanonymization.domain.DataMetadata;
-import gtanonymization.domain.ValueMetadata;
 
 /**
  * This class extracts metadata for each column from the input. It takes input
@@ -65,7 +65,7 @@ public class MetadataExtractor {
 		DataMetadata dataMetadata = basicMetadata(headerLine, numColumns, dataStartCount, lines);
 		logger.info(dataMetadata);
 		MetadataExporter exporter = new MetadataExporter();
-		exporter.exportMetadata(dataMetadata, "/home/kanchan/metadata.xml");
+		exporter.exportMetadata(dataMetadata, "/home/kanchan/metadata.xml",false);
 
 		//Kmeans kmeans = new Kmeans();
 		//int numClusters = lines.length / 8;
@@ -78,6 +78,27 @@ public class MetadataExtractor {
 		return dataMetadata;
 	}
 
+	ColumnStatistics[] extractMetadata(String file)
+	{
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder;
+		try {
+			builder = factory.newDocumentBuilder();
+			Document doc = builder.parse(file);
+			XPathFactory xPathfactory = XPathFactory.newInstance();
+			XPath xpath = xPathfactory.newXPath();
+			XPathExpression expr = xpath.compile("//column");
+		}
+		catch (ParserConfigurationException e) {
+			e.printStackTrace();
+		} 
+		catch (SAXException e) {
+			e.printStackTrace();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	/**
 	 * This function extracts basic metadata from input data. It extracts
 	 * frequency, min, max, mode and

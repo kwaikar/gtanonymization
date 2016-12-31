@@ -14,7 +14,7 @@ import gtanonymization.Constants;
  * @author kanchan
  * @param <T>
  */
-public class ColumnMetadata<T extends Comparable> {
+public class ColumnMetadata<T extends Comparable> extends ColumnStatistics<T>{
 
 	/**
 	 * @return the range
@@ -44,51 +44,13 @@ public class ColumnMetadata<T extends Comparable> {
 	@Override
 	public String toString() {
 		return "ColumnMetadata [columnName=" + columnName + ", type=" + type + ", min=" + min + ", max=" + max
-				+ ", mode=" + mode + ", uniqueValues= " + map.keySet().size() + "]";
+				 + ", uniqueValues= " + map.keySet().size() + "]";
 	}
 
-	/**
-	 * @return the columnName
-	 */
-	public String getColumnName() {
-		return columnName;
-	}
-
-	String columnName;
-	char type;
-	T min;
-	T max;
-	T mode;
-	int range;
+	
 
 	public ColumnMetadata(String columnName, char type) {
-		super();
-		this.columnName = columnName;
-		this.type = type;
-	}
-
-	/**
-	 * @return the type
-	 */
-	public char getType() {
-		return type;
-	}
-
-	/**
-	 * @param type
-	 *            the type to set
-	 */
-	public void setType(char type) {
-		this.type = type;
-	}
-
-	Map<T, ValueMetadata<T>> map = new HashMap<T, ValueMetadata<T>>();
-
-	/**
-	 * @return the map
-	 */
-	public Collection<ValueMetadata<T>> getValues() {
-		return map.values();
+		super(columnName,type);
 	}
 
 	Map<T, Integer> indexMap = new HashMap<T, Integer>();
@@ -124,17 +86,10 @@ public class ColumnMetadata<T extends Comparable> {
 
 		T entry = extractEntry(entryString);
 
-		ValueMetadata<T> metadata = map.get(entry);
-		if (metadata == null) {
-			metadata = new ValueMetadata<T>(entry);
-		}
-		else {
-			metadata.incrementCount();
-		}
-		map.put(entry, metadata);
-		return entry;
+		return super.addEntryToMap(entry);
 	}
 
+	
 	private T extractEntry(String entryString) {
 		Object entry = null;
 		entryString = entryString.trim().replaceAll("\\$", "");
@@ -168,27 +123,4 @@ public class ColumnMetadata<T extends Comparable> {
 		return (T) entry;
 	}
 
-	public void setMinMaxAndMode() {
-		Collection<T> keys = map.keySet();
-		this.min = (T) Collections.min(keys);
-		this.max = (T) Collections.max(keys);
-		if ((min + "").matches(Constants.DOUBLE_REGEX)) {
-			this.range = (int) (Double.parseDouble(max + "") - (Double.parseDouble(min + "")));
-		}
-		if ((min + "").matches(Constants.INT_REGEX)) {
-			this.range = Integer.parseInt(max + "") - (Integer.parseInt(min + ""));
-		}
-		ValueMetadata<T> tempMode = null;
-		int totalCount = 0;
-		for (ValueMetadata<T> value : map.values()) {
-			if (tempMode == null || tempMode.getCount() < value.getCount()) {
-				tempMode = value;
-			}
-			totalCount += value.getCount();
-		}
-		for (ValueMetadata<T> value : map.values()) {
-			value.setProbability((double) value.getCount() / totalCount);
-		}
-		this.mode = tempMode.getValue();
-	}
 }
