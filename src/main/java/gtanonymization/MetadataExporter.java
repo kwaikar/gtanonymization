@@ -33,21 +33,21 @@ public class MetadataExporter {
 		sb.append("<columns>");
 		for (ColumnMetadata column : dataMetadata.columns) {
 			sb.append("<column>");
-			sb.append("<name>" + column.getColumnName() + "</name>");
+			sb.append("<name>" + column.getColumnName().replaceAll("&","").replaceAll("'", "") + "</name>");
 			sb.append("<type>" + column.getType() + "</type>");
 			sb.append("<num_unique>" + column.getNumUniqueValues() + "</num_unique>");
 			sb.append("<ranges>");
 			if (!printRanges) {
-				Iterator<ValueMetadata> itr = column.getValues().iterator();
+			/*	Iterator<ValueMetadata> itr = column.getValues().iterator();
 				while (itr.hasNext()) {
 					ValueMetadata value = itr.next();
 
 					sb.append("<range>");
-					sb.append("<value>" + value.getValue() + "</value>");
+					sb.append("<value>" + value.getValue().toString().replaceAll("&","").replaceAll("'", "")+ "</value>");
 					sb.append("<frequency>" + value.getCount() + "</frequency>");
 					sb.append("<probability>" + decimalFormat.format(value.getProbability()) + "</probability>");
 					sb.append("</range>");
-				}
+				}*/
 			}
 			else {
 				switch (
@@ -105,7 +105,7 @@ public class MetadataExporter {
 							ValueMetadata<String> value = itr.next();
 
 							sb.append("<range>");
-							sb.append("<value>" + value.getValue() + "</value>");
+							sb.append("<value>" + value.getValue().replaceAll("&","").replaceAll("'", "") + "</value>");
 							sb.append("<frequency>" + value.getCount() + "</frequency>");
 							sb.append("<probability>" + decimalFormat.format(value.getProbability()) + "</probability>");
 							sb.append("</range>");

@@ -33,7 +33,15 @@ public class MondrianMultiDSKanonymity {
 		this.columns = columns;
 	}
 
-	public  void anonymize(List<Row> rows, int k) {
+	/**
+	 * This method performs multi dimensional cuts. It uses range heuristics in
+	 * order to select the column to perform cut on. Works only on quantitative
+	 * columns
+	 * 
+	 * @param rows
+	 * @param k
+	 */
+	public void anonymize(List<Row> rows, int k) {
 		if (rows.size() < k) {
 			System.out.println("No cut allowed. Number of rows present");
 		}
@@ -60,22 +68,28 @@ public class MondrianMultiDSKanonymity {
 			}
 
 		});
-		
-		int i=0;
+
+		int i = 0;
 		List<Row> leftSet = new LinkedList<Row>();
 		List<Row> rightSet = new LinkedList<Row>();
-		while (i<=(rows.size()/2))
-		{
+		Object min = rows.get(0).row[dim];
+		Object max = rows.get(rows.size()-1).row[dim];
+		Object median = rows.get(rows.size() / 2).row[dim];
+		while (i <= (rows.size() / 2)) {
 			leftSet.add(rows.get(i));
+			rows.get(i).setNewRow(min+"-"+median, dim);
+			System.out.println("setting ->"+i+" | "+min+"-"+median);
 			i++;
 		}
-		while(i<=rows.size())
-		{
+		while (i < rows.size()) {
 			rightSet.add(rows.get(i));
+			rows.get(i).setNewRow(median+"-"+max, dim);
 			i++;
 		}
+		if(leftSet.size()>=k && rightSet.size()>=k){
 		anonymize(leftSet, k);
 		anonymize(rightSet, k);
+		}
 
 	}
 
@@ -92,6 +106,7 @@ public class MondrianMultiDSKanonymity {
 		int maxValue = 0;
 
 		for (ColumnStatistics<?> column : columns) {
+			System.out.println("--Column"+column);
 			Set values = new HashSet();
 			if (column.getType() != 's') {
 				for (Row row : rows) {

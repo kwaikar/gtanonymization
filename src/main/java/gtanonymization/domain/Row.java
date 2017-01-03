@@ -45,6 +45,7 @@ public class Row {
 	public Row(Object[] row) {
 		super();
 		this.row = row;
+		this.newRow = new Object[row.length];
 	}
 
 }

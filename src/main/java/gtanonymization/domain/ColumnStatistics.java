@@ -36,6 +36,15 @@ public class ColumnStatistics<T extends Comparable> {
 		this.type = type;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "ColumnStatistics [columnName=" + columnName + ", type=" + type + ", min=" + min + ", max=" + max
+				+ ", range=" + range + ", map=" + map + "]";
+	}
+
 	public ColumnStatistics(String columnName, Map<T,ValueMetadata<T>> map,char type) {
 		super();
 		this.columnName = columnName;
