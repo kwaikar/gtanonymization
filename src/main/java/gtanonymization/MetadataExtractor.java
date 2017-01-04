@@ -70,11 +70,60 @@ public class MetadataExtractor {
 		ColumnStatistics[] columns =this.extractMetadata("/home/kanchan/metadata.xml");
 		MondrianMultiDSKanonymity mmdk = new MondrianMultiDSKanonymity(columns);
 		List<Row> rows = new LinkedList<Row>();
+		int index=0;
 		for (Object[] rows2 : dataMetadata.rows) {
-			Row row = new Row(rows2);
+			Row row = new Row(rows2,columns);
+			row.setId(index++);
 			rows.add(row);
 		}
-		mmdk.anonymize(rows, 4);
+		mmdk.anonymize(rows, 4,mmdk.isQuantitative);
+		
+		PenaltyCalculator pc = new PenaltyCalculator(columns);
+		mmdk.destroy();
+		  index=0;
+		StringBuilder sb = new StringBuilder();
+
+		StringBuilder output = new StringBuilder();
+		for (Row row : rows) {
+			sb.append("\n "+index);
+			for (Object object : row.row) {
+				sb.append(object+ " ");
+			}
+			sb.append("\n "+index++);
+			int cnt=0;
+			for (Object object : row.newRow) {
+				sb.append(object+ " ");
+				if(columns[cnt].isQuasiIdentifier())
+				{
+					output.append(object);
+				}
+				else
+				{
+					output.append(row.row[cnt]);
+				}
+				cnt++;
+				if(cnt!=row.newRow.length)
+				{
+					output.append(",");
+				}
+				else
+				{
+					output.append("\n");
+				}
+			}
+			sb.append("\n");
+		}
+		try {
+			FileUtils.writeStringToFile(new File("/home/kanchan/output.csv"), output.toString());
+		}
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println(sb.toString());
+
+		pc.getTotalPenalty(mmdk.getEquivalentClasses(), dataMetadata.rows.size());
+		//logger.info(sb.toString());
 		// Kmeans kmeans = new Kmeans();
 		// int numClusters = lines.length / 8;
 		// kmeans.trainModelAndPredict(dataMetadata, numClusters);
@@ -98,8 +147,21 @@ public class MetadataExtractor {
 			Node node = itr.next();
 			System.out.println();
 			ColumnStatistics column = new ColumnStatistics<Comparable>(node.$bslash("name").text(),
-					node.$bslash("type").text().charAt(0));
+					node.$bslash("type").text().charAt(0),new Boolean( node.$bslash("isQuasiIdentifier").text()));
+			column.setNumUniqueValues(Integer.parseInt(node.$bslash("num_unique").text()));
+			if(column.getType()!='s' && (column.getType()=='P' ||column.getType()=='i') )
+			{
+
+				column.setMin(Integer.parseInt(node.$bslash("min").text()));
+				column.setMax(Integer.parseInt(node.$bslash("max").text()));
+			}else if (column.getType()=='$' ||column.getType()=='d') 
+			{
+				System.out.println(column);
+				column.setMin(Double.parseDouble(node.$bslash("min").text()));
+				column.setMax(Double.parseDouble(node.$bslash("max").text()));
+			}
 			System.out.println(column);
+			
 			columns[i++]=column;
 		}
 

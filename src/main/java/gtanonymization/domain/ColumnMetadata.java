@@ -50,7 +50,7 @@ public class ColumnMetadata<T extends Comparable> extends ColumnStatistics<T>{
 	
 
 	public ColumnMetadata(String columnName, char type) {
-		super(columnName,type);
+		super(columnName,type,false);
 	}
 
 	Map<T, Integer> indexMap = new HashMap<T, Integer>();

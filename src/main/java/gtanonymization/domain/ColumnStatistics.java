@@ -1,5 +1,6 @@
 package gtanonymization.domain;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -7,20 +8,70 @@ import java.util.TreeMap;
 
 import gtanonymization.Constants;
 
-public class ColumnStatistics<T extends Comparable> {
+public class ColumnStatistics<T extends Comparable> implements Serializable {
 
+	/**
+	 * @param min the min to set
+	 */
+	public void setMin(T min) {
+		this.min = min;
+	}
+
+	/**
+	 * @param max the max to set
+	 */
+	public void setMax(T max) {
+		this.max = max;
+	}
+
+	/**
+	 * @return the min
+	 */
+	public T getMin() {
+		return min;
+	}
+
+	/**
+	 * @return the max
+	 */
+	public T getMax() {
+		return max;
+	}
 
 	String columnName;
 	char type;
-
+	boolean isQuasiIdentifier;
 	T min;
 	T max;
 	int range;
+	int numUniqueValues=0;
+
+	/**
+	 * @return the numUniqueValues
+	 */
+	public int getNumUniqueValues() {
+		return numUniqueValues;
+	}
+
+	/**
+	 * @param numUniqueValues the numUniqueValues to set
+	 */
+	public void setNumUniqueValues(int numUniqueValues) {
+		this.numUniqueValues = numUniqueValues;
+	}
+
 	/**
 	 * @return the type
 	 */
 	public char getType() {
 		return type;
+	}
+
+	/**
+	 * @return the isQuasiIdentifier
+	 */
+	public boolean isQuasiIdentifier() {
+		return isQuasiIdentifier;
 	}
 
 	/**
@@ -30,25 +81,28 @@ public class ColumnStatistics<T extends Comparable> {
 		return columnName;
 	}
 
-	public ColumnStatistics(String columnName, char type) {
+	public ColumnStatistics(String columnName, char type, boolean isQuasiIdentifier) {
 		super();
 		this.columnName = columnName;
 		this.type = type;
+		this.isQuasiIdentifier=isQuasiIdentifier;
 	}
 
+	  
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
-		return "ColumnStatistics [columnName=" + columnName + ", type=" + type + ", min=" + min + ", max=" + max
-				+ ", range=" + range + ", map=" + map + "]";
+		return "ColumnStatistics [columnName=" + columnName + ", type=" + type + ", isQuasiIdentifier="
+				+ isQuasiIdentifier + ", min=" + min + ", max=" + max + ", range=" + range + ", numUniqueValues="
+				+ numUniqueValues + ", map=" + map + "]";
 	}
 
-	public ColumnStatistics(String columnName, Map<T,ValueMetadata<T>> map,char type) {
+	public ColumnStatistics(String columnName, Map<T, ValueMetadata<T>> map, char type) {
 		super();
 		this.columnName = columnName;
-		this.map=map;
+		this.map = map;
 		this.type = type;
 	}
 
@@ -60,7 +114,6 @@ public class ColumnStatistics<T extends Comparable> {
 	public Collection<ValueMetadata<T>> getValues() {
 		return map.values();
 	}
-	
 
 	public T addEntryToMap(T entry) {
 		ValueMetadata<T> metadata = map.get(entry);

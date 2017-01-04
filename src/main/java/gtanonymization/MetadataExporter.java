@@ -35,8 +35,22 @@ public class MetadataExporter {
 			sb.append("<column>");
 			sb.append("<name>" + column.getColumnName().replaceAll("&","").replaceAll("'", "") + "</name>");
 			sb.append("<type>" + column.getType() + "</type>");
+			sb.append("<isQuasiIdentifier>" + true+ "</isQuasiIdentifier>");
 			sb.append("<num_unique>" + column.getNumUniqueValues() + "</num_unique>");
-			sb.append("<ranges>");
+			
+			 column.setMinMaxAndMode();
+			 switch (
+						column.getType()
+					) {
+
+					case 's':break;
+					default:
+						
+						sb.append("<min>" + column.getMin() + "</min>");
+						sb.append("<max>" + column.getMax() + "</max>");
+						break;
+			 }
+			 sb.append("<ranges>");
 			if (!printRanges) {
 			/*	Iterator<ValueMetadata> itr = column.getValues().iterator();
 				while (itr.hasNext()) {
