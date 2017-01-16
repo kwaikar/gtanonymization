@@ -35,7 +35,6 @@ public class MetadataExporter {
 			sb.append("<column>");
 			sb.append("<name>" + column.getColumnName().replaceAll("&","").replaceAll("'", "") + "</name>");
 			sb.append("<type>" + column.getType() + "</type>");
-			sb.append("<isQuasiIdentifier>" + true+ "</isQuasiIdentifier>");
 			sb.append("<num_unique>" + column.getNumUniqueValues() + "</num_unique>");
 			
 			 column.setMinMaxAndMode();
@@ -43,11 +42,14 @@ public class MetadataExporter {
 						column.getType()
 					) {
 
-					case 's':break;
+					case 's': 
+					sb.append("<isQuasiIdentifier>" + true+ "</isQuasiIdentifier>");
+					break;
 					default:
 						
 						sb.append("<min>" + column.getMin() + "</min>");
 						sb.append("<max>" + column.getMax() + "</max>");
+						sb.append("<isQuasiIdentifier>" + true+ "</isQuasiIdentifier>");
 						break;
 			 }
 			 sb.append("<ranges>");

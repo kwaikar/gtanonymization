@@ -3,7 +3,6 @@
  */
 package gtanonymization;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -40,12 +39,11 @@ import scala.Tuple2;
 public class MondrianMultiDSKanonymity {
 	final static Logger logger = Logger.getLogger(MondrianMultiDSKanonymity.class);
 
-
 	private ColumnStatistics[] columns = null;
 	private JavaSparkContext jsc = null;
 	static boolean[] isQuantitative = null;
 	List<List<Row>> equivalentClasses = new LinkedList<List<Row>>();
- 
+
 	/**
 	 * This method accepts rows, Column Heuristics and
 	 * 
@@ -66,7 +64,7 @@ public class MondrianMultiDSKanonymity {
 		conf.setMaster("local");
 		jsc = new JavaSparkContext(conf);
 		this.columns = columns;
-		isQuantitative = getQuantitativeIndices(); 
+		isQuantitative = getQuantitativeIndices();
 		jsc.broadcast(isQuantitative);
 	}
 
@@ -90,60 +88,57 @@ public class MondrianMultiDSKanonymity {
 	 * @param k
 	 */
 
-	public void anonymize(List<Row> rows, int k, boolean[] isQuantitativeCopy) {
+	public void anonymize(List<Row> rows, int k, boolean[] columnsEnabledForCut) {
 		if (rows.size() < k) {
 			System.out.println("No cut allowed. Number of rows present");
 		}
 		else if (rows.size() == k) {
 			System.out.println("Cluster cannot be paritioned further.");
+			equivalentClasses.add(rows);
 		}
 		else {
 
 			JavaRDD<Row> rowsRDD = jsc.parallelize(rows);
-			final int dim = selectDimension(rowsRDD,isQuantitativeCopy);
-			boolean furtherDividable =false;
-			if (dim >= 0) {
-				isQuantitativeCopy[dim] = false;
-				sortRowsByDimensionChosen(rows, dim);
+			final int dim = selectDimension(rowsRDD, columnsEnabledForCut);
 
-				int i = 0;
-				List<Row> leftSet = new LinkedList<Row>();
-				List<Row> rightSet = new LinkedList<Row>();
+			if (dim >= 0) {
+				columnsEnabledForCut[dim] = false;
+				boolean[] columnsEnabledForCut1 = Arrays.copyOf(columnsEnabledForCut, columnsEnabledForCut.length);
+				boolean[] columnsEnabledForCut2 = Arrays.copyOf(columnsEnabledForCut, columnsEnabledForCut.length);
+				
+				sortRowsByDimensionChosen(rows, dim);
+ 
 				Object min = rows.get(0).row[dim];
 				Object max = rows.get(rows.size() - 1).row[dim];
 				Object median = rows.get(rows.size() / 2).row[dim];
-				while (i <= (rows.size() / 2)) {
-					leftSet.add(rows.get(i++));
- 				}
-				while (i < rows.size()) {
-					rightSet.add(rows.get(i++));
+				
+				List<Row>  leftSet = rows.subList(0, (rows.size() / 2));
+				List<Row>  rightSet = rows.subList((rows.size() / 2), rows.size());
 
-				}
-				logger.info("Cut performed on "+columns[dim].getColumnName()+": "+ min+" : "+median+ " : "+max);
-				logger.info("Dividing into two"+leftSet+" : "+rightSet);
+				
+				logger.info(
+						"Cut performed on " + columns[dim].getColumnName() + ": " + min + " : " + median + " : " + max);
+				logger.info("Dividing into two" + leftSet + " : " + rightSet);
 
 				if (leftSet.size() >= k && rightSet.size() >= k) {
-					furtherDividable=true;
+
+					Pair<Object,Object> leftPair =new ImmutablePair<Object, Object>(min,median);
+					
 					for (Row row : leftSet) {
-						Pair<Object,Object> pair = new ImmutablePair<Object, Object>(min,median);
-						row.setNewRow(pair, dim);
+						row.setNewRow(leftPair, dim);
 					}
+					Pair<Object,Object> rightPair =new ImmutablePair<Object, Object>(median, max);
 					for (Row row : rightSet) {
-						Pair<Object,Object> pair = new ImmutablePair<Object, Object>(median,max);
-						row.setNewRow(pair, dim);
+						row.setNewRow(rightPair, dim);
 					}
-					boolean[] copy1 = Arrays.copyOf(isQuantitativeCopy,isQuantitativeCopy.length);
-					boolean[] copy2 = Arrays.copyOf(isQuantitativeCopy,isQuantitativeCopy.length);
-					anonymize(leftSet, k,copy1);
-					anonymize(rightSet, k, copy2);
+					anonymize(leftSet, k, columnsEnabledForCut1);
+					anonymize(rightSet, k, columnsEnabledForCut2);
 				}
-				else
-				{
-					furtherDividable=false;
+				else {
+					equivalentClasses.add(rows);
 				}
 			}
-			if(!furtherDividable)
-			{
+			else {
 				equivalentClasses.add(rows);
 			}
 		}
@@ -183,7 +178,7 @@ public class MondrianMultiDSKanonymity {
 	 * @return
 	 */
 
-	public int selectDimension(JavaRDD<Row> rowsRDD,boolean[] isQuantitative) {
+	public int selectDimension(JavaRDD<Row> rowsRDD, boolean[] isQuantitative) {
 
 		/**
 		 * Emit <Index,value> - since multiple values need to be emitted,
@@ -194,16 +189,16 @@ public class MondrianMultiDSKanonymity {
 		/**
 		 * convert into key,value pair RDD.
 		 */
-		//System.out.println("1 ===>" + map.collect());
+		// System.out.println("1 ===>" + map.collect());
 
 		JavaPairRDD<Integer, Iterable<Object>> mapPairs = map.mapToPair(tupleToPairFunction).groupByKey().cache();
 
-	//	System.out.println("2 ===>" + mapPairs.collect().toString());
+		// System.out.println("2 ===>" + mapPairs.collect().toString());
 		/**
 		 * Calculate numCounts for each index.
 		 */
 		JavaPairRDD<Integer, Integer> numUniqueEntries = mapPairs.mapValues(indexToUniqueCountsFunction);
-		//System.out.println("3====>" + numUniqueEntries.collect());
+		// System.out.println("3====>" + numUniqueEntries.collect());
 		/**
 		 * Reverse the map in order to find the max numUnique Value, sort by
 		 * key.
@@ -212,12 +207,13 @@ public class MondrianMultiDSKanonymity {
 		JavaPairRDD<Integer, Integer> reverseMap = numUniqueEntries.mapToPair(reverseTuplePairFunction)
 				.sortByKey(false);
 
-		//System.out.println("4 -----------------------------" + reverseMap.collect());
+		// System.out.println("4 -----------------------------" +
+		// reverseMap.collect());
 
 		List<Tuple2<Integer, Integer>> frequencyColumnTuples = reverseMap.collect();
 		for (Tuple2<Integer, Integer> tuple2 : frequencyColumnTuples) {
 			if (isQuantitative[tuple2._2]) {
-			//	System.out.println("5--------------" + tuple2._2);
+				// System.out.println("5--------------" + tuple2._2);
 				return tuple2._2;
 			}
 

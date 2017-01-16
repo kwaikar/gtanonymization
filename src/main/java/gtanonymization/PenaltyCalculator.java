@@ -14,8 +14,19 @@ public class PenaltyCalculator {
 		super();
 		this.columns = columns;
 	}
+	
+	public double getTotalDiscernabilityMetric(List<List<Row>> equivalentClasses, int totalNumRows)
+	{
+		double totalPenalty=0.0;
+		for (List<Row> list : equivalentClasses) {
+			totalPenalty+=list.size() * list.size();
+		}
+		System.out.println("Total Penalty : "+totalPenalty);
+		return totalPenalty;
+	}
+	
 
-	public double getTotalPenalty(List<List<Row>> equivalentClasses, int totalNumRows)
+	public double getTotalGlobalNormalizedCertainityPenalty(List<List<Row>> equivalentClasses, int totalNumRows)
 	{
 		int count=0;
 		double totalPenalty=0.0;

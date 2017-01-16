@@ -18,6 +18,13 @@ public class ColumnStatistics<T extends Comparable> implements Serializable {
 	}
 
 	/**
+	 * @param range the range to set
+	 */
+	public void setRange(int range) {
+		this.range = range;
+	}
+
+	/**
 	 * @param max the max to set
 	 */
 	public void setMax(T max) {

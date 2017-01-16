@@ -9,6 +9,7 @@ import javax.xml.parsers.DocumentBuilder;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
 import gtanonymization.domain.ColumnMetadata;
@@ -64,50 +65,73 @@ public class MetadataExtractor {
 
 		DataMetadata dataMetadata = basicMetadata(headerLine, numColumns, dataStartCount, lines);
 		logger.info(dataMetadata);
-		MetadataExporter exporter = new MetadataExporter();
-		exporter.exportMetadata(dataMetadata, "/home/kanchan/metadata.xml", false);
+	//	MetadataExporter exporter = new MetadataExporter();
+	//	exporter.exportMetadata(dataMetadata, "/home/kanchan/metadata.xml", false);
 
-		ColumnStatistics[] columns =this.extractMetadata("/home/kanchan/metadata.xml");
-		MondrianMultiDSKanonymity mmdk = new MondrianMultiDSKanonymity(columns);
+		ColumnStatistics[] columns = this.extractMetadata("/home/kanchan/metadata.xml");
+		/*MondrianMultiDSKanonymity mmdk = new MondrianMultiDSKanonymity(columns);
 		List<Row> rows = new LinkedList<Row>();
-		int index=0;
+		int index = 0;
 		for (Object[] rows2 : dataMetadata.rows) {
-			Row row = new Row(rows2,columns);
+			Row row = new Row(rows2, columns);
 			row.setId(index++);
 			rows.add(row);
 		}
-		mmdk.anonymize(rows, 4,mmdk.isQuantitative);
-		
+		mmdk.anonymize(rows, 4, mmdk.isQuantitative);
+
 		PenaltyCalculator pc = new PenaltyCalculator(columns);
 		mmdk.destroy();
-		  index=0;
+		index = 0;
+		writeKAnonymousDataToFile(columns, rows, index);
+
+		pc.getTotalGlobalNormalizedCertainityPenalty(mmdk.getEquivalentClasses(), dataMetadata.rows.size());
+
+		pc.getTotalDiscernabilityMetric(mmdk.getEquivalentClasses(), dataMetadata.rows.size());*/
+		// logger.info(sb.toString());
+		// Kmeans kmeans = new Kmeans();
+		// int numClusters = lines.length / 8;
+		// kmeans.trainModelAndPredict(dataMetadata, numClusters);
+		// NaiveClusterExtractor nce = new NaiveClusterExtractor();
+		// nce.extractClusters(dataStartCount, lines, dataMetadata);
+		
+		 LSH lsh = new LSH();
+		 lsh.trainModelAndPredict(dataMetadata, 8);
+		 //NaiveClusterExtractor nce = new NaiveClusterExtractor();
+			// nce.extractClusters(dataStartCount, lines, dataMetadata);
+		 
+		 
+		// LatticeCreator lc = new LatticeCreator();
+		// lc.formTree(lines[dataStartCount].split(","), dataMetadata);
+		logger.info("done!");
+		return dataMetadata;
+	}
+
+	private void writeKAnonymousDataToFile(ColumnStatistics[] columns, List<Row> rows, int index) {
 		StringBuilder sb = new StringBuilder();
 
 		StringBuilder output = new StringBuilder();
 		for (Row row : rows) {
-			sb.append("\n "+index);
+			sb.append("\n " + index);
 			for (Object object : row.row) {
-				sb.append(object+ " ");
+				sb.append(object + " ");
 			}
-			sb.append("\n "+index++);
-			int cnt=0;
+			sb.append("\n " + index++);
+			int cnt = 0;
 			for (Object object : row.newRow) {
-				sb.append(object+ " ");
-				if(columns[cnt].isQuasiIdentifier())
-				{
-					output.append(object);
+				sb.append(object + " ");
+				if (columns[cnt].isQuasiIdentifier()) {
+					Pair pair = (Pair) object;
+					output.append((pair.getLeft().toString().equalsIgnoreCase(pair.getRight().toString())
+							? pair.getLeft() : pair.getLeft() + "-" + pair.getRight()));
 				}
-				else
-				{
+				else {
 					output.append(row.row[cnt]);
 				}
 				cnt++;
-				if(cnt!=row.newRow.length)
-				{
+				if (cnt != row.newRow.length) {
 					output.append(",");
 				}
-				else
-				{
+				else {
 					output.append("\n");
 				}
 			}
@@ -121,18 +145,6 @@ public class MetadataExtractor {
 			e.printStackTrace();
 		}
 		System.out.println(sb.toString());
-
-		pc.getTotalPenalty(mmdk.getEquivalentClasses(), dataMetadata.rows.size());
-		//logger.info(sb.toString());
-		// Kmeans kmeans = new Kmeans();
-		// int numClusters = lines.length / 8;
-		// kmeans.trainModelAndPredict(dataMetadata, numClusters);
-		// NaiveClusterExtractor nce = new NaiveClusterExtractor();
-		// nce.extractClusters(dataStartCount, lines, dataMetadata);
-		// LatticeCreator lc = new LatticeCreator();
-		// lc.formTree(lines[dataStartCount].split(","), dataMetadata);
-		logger.info("done!");
-		return dataMetadata;
 	}
 
 	ColumnStatistics[] extractMetadata(String file) {
@@ -142,27 +154,28 @@ public class MetadataExtractor {
 		NodeSeq seq = xml.$bslash$bslash("columns").$bslash("column");
 		ColumnStatistics[] columns = new ColumnStatistics[seq.size()];
 		Iterator<Node> itr = seq.iterator();
-		int i=0;
+		int i = 0;
 		while (itr.hasNext()) {
 			Node node = itr.next();
 			System.out.println();
 			ColumnStatistics column = new ColumnStatistics<Comparable>(node.$bslash("name").text(),
-					node.$bslash("type").text().charAt(0),new Boolean( node.$bslash("isQuasiIdentifier").text()));
+					node.$bslash("type").text().charAt(0), new Boolean(node.$bslash("isQuasiIdentifier").text()));
 			column.setNumUniqueValues(Integer.parseInt(node.$bslash("num_unique").text()));
-			if(column.getType()!='s' && (column.getType()=='P' ||column.getType()=='i') )
-			{
+			if (column.getType() != 's' && (column.getType() == 'P' || column.getType() == 'i')) {
 
 				column.setMin(Integer.parseInt(node.$bslash("min").text()));
 				column.setMax(Integer.parseInt(node.$bslash("max").text()));
-			}else if (column.getType()=='$' ||column.getType()=='d') 
-			{
+				column.setRange((Integer)column.getMax()-(Integer)column.getMin());
+			}
+			else if (column.getType() == '$' || column.getType() == 'd') {
 				System.out.println(column);
 				column.setMin(Double.parseDouble(node.$bslash("min").text()));
 				column.setMax(Double.parseDouble(node.$bslash("max").text()));
+				column.setRange((int)((Double)column.getMax()-(Double)column.getMin()));
 			}
 			System.out.println(column);
-			
-			columns[i++]=column;
+
+			columns[i++] = column;
 		}
 
 		return columns;
