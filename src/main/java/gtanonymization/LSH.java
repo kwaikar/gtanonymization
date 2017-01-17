@@ -56,7 +56,7 @@ public class LSH {
 
 		List<Row> neighbors = (List<Row>) model.approxNearestNeighbors(transformedModel,
 				(Vector) Vectors
-						.dense(extractRow(dataMetadata, getColumnStartCounts(dataMetadata), dataMetadata.rows.get(0))),
+						.dense(extractRow(dataMetadata, getColumnStartCounts(dataMetadata), dataMetadata.rows.get(0),true)),
 				clusterSize).collectAsList();
 		System.out.println();
 		int[] columnStartCounts = getColumnStartCounts(dataMetadata);
@@ -73,7 +73,7 @@ public class LSH {
 
 	public void printObject(DataMetadata dataMetadata, int[] columnStartCounts,double[] vector)
 	{
-		Object[] returnObject = extractReturnObject(dataMetadata, columnStartCounts, vector);
+		Object[] returnObject = extractReturnObject(dataMetadata, columnStartCounts, vector,true);
 		for (Object object : returnObject) {
 			System.out.print(object + " ");
 		}
@@ -88,7 +88,7 @@ public class LSH {
 
 			Row inputArrayVector = next;
 			Object[] returnObject = extractReturnObject(dataMetadata, columnStartCounts,
-					((DenseVector) inputArrayVector.get(0)).toArray());
+					((DenseVector) inputArrayVector.get(0)).toArray(),true);
 			for (int i = 0; i < inputArrayVector.size(); i++) {
 				System.out.print(inputArrayVector.getDouble(i) + " ");
 			}
@@ -106,7 +106,7 @@ public class LSH {
 	}
 
 	private Object[] extractReturnObject(DataMetadata dataMetadata, int[] columnStartCounts,
-			double[] inputArrayVector) {
+			double[] inputArrayVector,boolean denormalize) {
 		int index = 0;
 		Object[] returnObject = new Object[dataMetadata.columns.length];
 		for (ColumnMetadata<Comparable> column : dataMetadata.columns) {
@@ -115,12 +115,27 @@ public class LSH {
 			) {
 			case 'i':
 			case 'P':
-				returnObject[index] = (int) inputArrayVector[columnStartCounts[index]];
+				if(denormalize)
+				{
+					returnObject[index] =(int) ((double) inputArrayVector[columnStartCounts[index]]*column.getRange()/100)+(Integer)column.getMin();
+				}
+				else
+				{
+					returnObject[index] = (int) inputArrayVector[columnStartCounts[index]];
+
+				}
 				break;
 
 			case 'd':
 			case '$':
+				if(denormalize)
+				{
+					returnObject[index] =(int) ((double) inputArrayVector[columnStartCounts[index]]*column.getRange()/100)+(Double)column.getMin();
+				}
+				else
+				{
 				returnObject[index] = inputArrayVector[columnStartCounts[index]];
+				}
 				break;
 			/**
 			 * add integer currency
@@ -149,13 +164,13 @@ public class LSH {
 		int[] columnStartCounts = getColumnStartCounts(dataMetadata);
 		int rowCount = 0;
 		for (Object[] ds : dataMetadata.rows) {
-			double[] row = extractRow(dataMetadata, columnStartCounts, ds);
+			double[] row = extractRow(dataMetadata, columnStartCounts, ds,true);
 			list.add(RowFactory.create(rowCount++, Vectors.dense(row)));
 		}
 		return list;
 	}
 
-	private double[] extractRow(DataMetadata dataMetadata, int[] columnStartCounts, Object[] ds) {
+	private double[] extractRow(DataMetadata dataMetadata, int[] columnStartCounts, Object[] ds, boolean normalize) {
 		double[] row = new double[getTotalNewColumns(dataMetadata)];
 		int index = 0;
 		for (ColumnMetadata<Comparable> column : dataMetadata.columns) {
@@ -167,7 +182,15 @@ public class LSH {
 			 */
 			case 'i':
 			case 'P':
-				row[columnStartCounts[index]] = ((Integer) ds[index]);
+				if(normalize)
+				{
+					row[columnStartCounts[index]] =100*((double) ((Integer) ds[index])- (Integer)column.getMin())/column.getRange();
+				}
+				else
+				{
+					row[columnStartCounts[index]] = ((Integer) ds[index]);	
+				}
+				
 				break;
 
 			/**
@@ -175,7 +198,14 @@ public class LSH {
 			 */
 			case 'd':
 			case '$':
+				if(normalize)
+				{
+					row[columnStartCounts[index]] =100*((double) ((Double) ds[index])- (Double)column.getMin())/column.getRange();
+				}
+				else
+				{
 				row[columnStartCounts[index]] = ((Double) ds[index]);
+				}
 				break;
 			/**
 			 * add integer currency
